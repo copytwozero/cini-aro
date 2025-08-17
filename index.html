@@ -1,140 +1,114 @@
 <!DOCTYPE html>
 <html lang="ta">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>cini Aro - தமிழ்</title>
-<style>
-body { font-family: 'Segoe UI', sans-serif; background:#111; color:#fff; margin:0; padding:0;}
-.site-header{background:#222; padding:10px; text-align:center; font-size:1.4rem; font-weight:bold; position:relative;}
-.user-count{position:absolute; top:10px; right:15px; background:#00ff88; color:#000; padding:5px 10px; border-radius:15px; font-size:0.9rem; font-weight:bold;}
-#content{padding:10px;}
-.movie-item,.category-item{background:#1c1c1c; border-radius:8px; margin:10px 0; padding:10px; display:flex; align-items:center;}
-.movie-item img{width:80px; height:auto; border-radius:5px; margin-right:10px;}
-.movie-info a{color:#00ff88; text-decoration:none; font-weight:bold;}
-.pagination{margin-top:15px; text-align:center;}
-.pagination a{color:#ff0; margin:0 5px; text-decoration:none;}
-.pagination_current{color:#0ff; font-weight:bold;}
-.spinner-container{display:flex; flex-direction:column; align-items:center; margin-top:50px;}
-.spinner{border:4px solid #333; border-top:4px solid #0ff; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;}
-@keyframes spin{100%{transform:rotate(360deg);}}
-#popup{display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); justify-content:center; align-items:center; z-index:9999;}
-.popup-box{background:#222; padding:20px; border-radius:10px; text-align:center;}
-.popup-box button{background:#00ff88; border:none; padding:10px 15px; color:#000; font-weight:bold; border-radius:5px; cursor:pointer;}
-button#backBtn{margin:10px; padding:10px 15px; font-weight:bold; cursor:pointer; background:#0ff; color:#000; border:none; border-radius:5px;}
-</style>
+  <meta charset="UTF-8">
+  <title>Movies Aro - தமிழ்</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background:#111; color:#fff; margin:0; }
+    .site-header { background:#222; padding:15px; text-align:center; font-size:22px; font-weight:bold; }
+    .category-item { padding:12px; border-bottom:1px solid #333; }
+    .category-item a { color:#4cafef; text-decoration:none; font-size:18px; }
+    #backButton { display:none; margin:10px; padding:8px 14px; border:none; border-radius:8px; background:#4cafef; color:#fff; cursor:pointer; }
+    /* Popup */
+    #popup { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; }
+    #popupContent { background:#222; padding:20px; border-radius:10px; text-align:center; }
+    #popup button { margin:10px; padding:10px 20px; border:none; border-radius:6px; cursor:pointer; }
+    #okBtn { background:#4cafef; color:#fff; }
+    #cancelBtn { background:#999; color:#000; }
+  </style>
 </head>
 <body>
-<div class="site-header">
-🎬 cini Aro - தமிழ்
-<span class="user-count">👥 <span id="userCount">0</span></span>
-</div>
-<button id="backBtn" style="display:none;">← Back</button>
-<div id="content"></div>
+  <div class="site-header">Movies Aro - தமிழ்</div>
+  <button id="backButton" onclick="goBack()">← Back</button>
+  <div id="content"></div>
 
-<div id="popup">
-<div class="popup-box">
-<p>📥 Download link-க்கு செல்ல OK அழுத்தவும்</p>
-<button onclick="confirmRedirect()">OK</button>
-</div>
-</div>
+  <!-- Popup -->
+  <div id="popup">
+    <div id="popupContent">
+      <h3>Redirect to Download?</h3>
+      <p>Your download will start after visiting sponsor page.</p>
+      <button id="okBtn">OK</button>
+      <button id="cancelBtn">Cancel</button>
+    </div>
+  </div>
 
-<script type="module">
-// Firebase Live User Count
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-analytics.js";
-import { getDatabase, ref, set, onDisconnect, onValue } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-database.js";
+  <script>
+    const contentDiv = document.getElementById("content");
+    const backButton = document.getElementById("backButton");
+    let actualDownloadUrl = "";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBnY2HE2zylEONgXruGxPU_8OnN2bvVDxs",
-  authDomain: "myuserscounter.firebaseapp.com",
-  databaseURL: "https://myuserscounter-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "myuserscounter",
-  storageBucket: "myuserscounter.appspot.com",
-  messagingSenderId: "326545068293",
-  appId: "1:326545068293:web:2effe83b5dad263810276c",
-  measurementId: "G-3ZZED15Y9G"
-};
-const app = initializeApp(firebaseConfig);
-getAnalytics(app);
-const db = getDatabase(app);
-const userId = Math.random().toString(36).substring(2);
-const userRef = ref(db, 'onlineUsers/' + userId);
-set(userRef, true);
-onDisconnect(userRef).remove();
-const countRef = ref(db, 'onlineUsers');
-onValue(countRef, snapshot => {
-  const count = snapshot.size || snapshot.numChildren();
-  document.getElementById('userCount').textContent = count;
-});
-</script>
+    // ✅ Proxy URL
+    const PROXY = "https://api.allorigins.win/raw?url=";
 
-<script>
-const baseUrl="https://moviesda12.com";
-let actualDownloadUrl="";
-const pageHistory=[];
-const contentDiv=document.getElementById('content');
-const backBtn=document.getElementById('backBtn');
-const proxyUrl="https://api.allorigins.win/get?url=";
+    async function loadPage(path = "") {
+      contentDiv.innerHTML = "<p>⏳ Loading...</p>";
+      try {
+        const res = await fetch(PROXY + encodeURIComponent("https://moviesda12.com" + path));
+        const html = await res.text();
 
-async function loadPage(relativePath, isBack=false, retryCount=3){
-  if(!isBack && (!pageHistory.length || pageHistory[pageHistory.length-1]!==relativePath)) pageHistory.push(relativePath);
-  contentDiv.innerHTML='<div class="spinner-container"><div class="spinner"></div></div>';
-  const fullUrl=baseUrl+relativePath;
-  const apiUrl=proxyUrl+encodeURIComponent(fullUrl);
+        // Parse response
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const links = [...doc.querySelectorAll("a")];
 
-  for(let attempt=1; attempt<=retryCount; attempt++){
-    try{
-      const res=await fetch(apiUrl);
-      if(!res.ok) throw new Error("Network Error");
-      const data=await res.json();
-      const html=data.contents;
-      const doc=new DOMParser().parseFromString(html,"text/html");
+        contentDiv.innerHTML = "";
+        links.forEach(a => {
+          const text = a.textContent.trim();
+          const href = a.getAttribute("href");
+          if (!href || href.startsWith("#") || href.startsWith("javascript")) return;
 
-      const links=[...doc.querySelectorAll("a")];
-      let contentHTML="";
-      links.forEach(a=>{
-        const text=a.textContent.trim();
-        let href=a.getAttribute("href");
-        if(!text || !href) return;
-        if(href.startsWith("/")) href=baseUrl+href;
-        contentHTML+='<div class="category-item"><div class="movie-info"><a href="#" onclick="handleClick(\''+href+'\');return false;">'+text+'</a></div></div>';
-      });
-      contentDiv.innerHTML=contentHTML;
-      backBtn.style.display=pageHistory.length>1?'inline-block':'none';
-      return;
-    }catch(e){
-      console.warn(`Attempt ${attempt} failed: ${e.message}`);
-      if(attempt===retryCount) contentDiv.innerHTML='<p>❌ Unable to load after '+retryCount+' tries.</p>';
+          const item = document.createElement("div");
+          item.className = "category-item";
+
+          const link = document.createElement("a");
+          link.textContent = text || href;
+
+          if (href.includes("moviesda12.com")) {
+            link.href = "#";
+            link.onclick = (e) => { e.preventDefault(); loadPage(href.replace("https://moviesda12.com","")); };
+          } else if (href.match(/\.(zip|rar|mp4|mkv|avi|mov|wmv)/i)) {
+            link.href = "#";
+            link.onclick = (e) => { e.preventDefault(); handleFinalDownload(href); };
+          } else {
+            return; // skip useless links
+          }
+
+          item.appendChild(link);
+          contentDiv.appendChild(item);
+        });
+
+        // Show back button if inside page
+        backButton.style.display = path ? "inline-block" : "none";
+
+      } catch (e) {
+        contentDiv.innerHTML = "<p style='color:red'>❌ Failed to load. Try again.</p>";
+      }
     }
-  }
-}
 
-function handleClick(href){
-  if(/\d{5}/.test(href)){
-    actualDownloadUrl='https://download.moviespage.site/download/page/'+href.match(/\d{5}/)[0];
-    document.getElementById("popup").style.display="flex";
-  } else {
-    loadPage(href);
-  }
-}
+    // ✅ Download popup logic
+    function handleFinalDownload(url) {
+      actualDownloadUrl = url;
+      document.getElementById("popup").style.display = "flex";
+    }
 
-backBtn.addEventListener("click",()=>{if(pageHistory.length>1){pageHistory.pop(); const prev=pageHistory.pop(); loadPage(prev,true);}});
+    document.getElementById("okBtn").onclick = () => {
+      document.getElementById("popup").style.display = "none";
+      // Open ad page
+      window.open("https://otieu.com/4/9535254", "_blank");
+      // After 5s redirect to real download
+      setTimeout(() => { window.location.href = actualDownloadUrl; }, 5000);
+    };
+    document.getElementById("cancelBtn").onclick = () => {
+      document.getElementById("popup").style.display = "none";
+    };
 
-function confirmRedirect(){
-  document.getElementById("popup").style.display="none";
-  window.open("https://otieu.com/4/9535254","_blank");
-  setTimeout(()=>{window.location.href=actualDownloadUrl;},5000);
-}
+    function goBack() {
+      window.history.back();
+    }
 
-// Initial load
-loadPage("/tamil-yearly-dubbed-movies/");
-
-// Disable right-click and devtools
-document.addEventListener("contextmenu", e=>e.preventDefault());
-document.addEventListener("keydown", e=>{
-  if(e.key==="F12" || (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) || (e.ctrlKey && e.key==="U")) e.preventDefault();
-});
-</script>
+    // Load homepage
+    loadPage("/");
+  </script>
 </body>
 </html>
